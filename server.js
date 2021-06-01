@@ -101,6 +101,9 @@ function seedOwnerCollection() {
 
  app.get('/books',getBooksHandler);
 
+app.post('/addBook', addBooksHandler);
+app.delete('/deleteBook/:index',deleteBooksHandler);
+
  function getBooksHandler(req,res) {
   let {email} = req.query;
   // let {name} = req.query
@@ -116,7 +119,50 @@ function seedOwnerCollection() {
   })
 }
 
+function addBooksHandler(req, res) {
+  console.log(req.body);
+  const {bookName,description, urlImg, ownerEmail } = req.body;
+  // console.log(bookName);
+  // console.log(bookDescription);
+  // console.log(bookUrlImg);
 
+  myOwnerModel.find({ ownerEmail:ownerEmail }, (error, ownerData) => {
+    if (error) { res.send('not working') }
+    else {
+      console.log('before pushing', ownerData[0]);
+      ownerData[0].books.push({
+        bookName: bookName,
+        description: description,
+        urlImg: urlImg,
+
+      })
+      console.log('after pushing', ownerData[0])
+      ownerData[0].save();
+
+      res.send(ownerData[0].books);
+
+    }
+
+  })
+}
+
+function deleteBooksHandler(req, res) {
+  console.log(req.params);
+  let { email } = req.query;
+  const index = Number(req.params.index);
+
+  myOwnerModel.find({ ownerName: email }, (error, ownerData) => {
+    // filter the books for the owner and remove the one that matches the index
+    const newBooksArr = ownerData[0].books.filter((book, idx) => {
+      if (idx !== index) return book;
+      // return idx !==index
+    })
+    ownerData[0].books = newBooksArr;
+    ownerData[0].save();
+    res.send(ownerData[0].books)
+  })
+
+}
 
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
