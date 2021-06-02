@@ -5,23 +5,22 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-// const jwt = require('jsonwebtoken');
-// const jwksClient = require('jwks-rsa');
+
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const PORT = process.env.PORT;
 
 mongoose.connect('mongodb://localhost:27017/books',
-  { useNewUrlParser: true, useUnifiedTopology: true }); //deprecation warnings
+  { useNewUrlParser: true, useUnifiedTopology: true });
 
 
 
 
 //  create collections
 //  create schema and model
-// Schema: determines how the shape of our data will look like (blueprint)
 const bookSchema = new mongoose.Schema({
   bookName: String,
   description: String,
@@ -34,8 +33,6 @@ const ownerSchema = new mongoose.Schema({
 });
 
 // build a model from our schema
-// schema: drawing phase
-// model: creation phase
 const bookModel = mongoose.model('book', bookSchema);
 const myOwnerModel = mongoose.model('owner', ownerSchema);
 
@@ -94,19 +91,19 @@ function seedOwnerCollection() {
   motasim.save();
   zienab.save();
 }
-
-
 //  seedOwnerCollection();
 
 
- app.get('/books',getBooksHandler);
 
+app.get('/books',getBooksHandler);
 app.post('/addBook', addBooksHandler);
 app.delete('/deleteBook/:index',deleteBooksHandler);
+app.put('/updatebook/:index', updateBookHandler);
 
+
+// GET FUNCTION
  function getBooksHandler(req,res) {
   let {email} = req.query;
-  // let {name} = req.query
   myOwnerModel.find({ownerEmail:email},function(err,ownerData){
       if(err) {
           console.log('did not work')
@@ -119,6 +116,8 @@ app.delete('/deleteBook/:index',deleteBooksHandler);
   })
 }
 
+
+// POST FUNCTION
 function addBooksHandler(req, res) {
   console.log(req.body);
   const {bookName,description, urlImg, ownerEmail } = req.body;
@@ -146,20 +145,45 @@ function addBooksHandler(req, res) {
   })
 }
 
+
+// DELETE FUNCTION
 function deleteBooksHandler(req, res) {
   console.log(req.params);
   let { email } = req.query;
   const index = Number(req.params.index);
 
   myOwnerModel.find({ ownerName: email }, (error, ownerData) => {
-    // filter the books for the owner and remove the one that matches the index
     const newBooksArr = ownerData[0].books.filter((book, idx) => {
       if (idx !== index) return book;
-      // return idx !==index
     })
     ownerData[0].books = newBooksArr;
     ownerData[0].save();
     res.send(ownerData[0].books)
+  })
+
+}
+
+
+// PUT FUNCTION
+function updateBookHandler(req, res) {
+
+  console.log(req.body);
+  console.log(req.params.index);
+
+  const { bookName, description, urlImg, ownerEmail } = req.body;
+  const index = Number(req.params.index);
+
+  myOwnerModel.findOne({ ownerEmail: ownerEmail }, (error, ownerData) => {
+    console.log(ownerData);
+    ownerData.books.splice(index, 1, {
+      bookName: bookName,
+      description: description,
+      urlImg: urlImg,
+    })
+
+    ownerData.save();
+    console.log(ownerData)
+    res.send(ownerData.books)
   })
 
 }
